@@ -63,8 +63,5 @@ Follow the instructions provided in the **Tutorial** section of the application 
 
 - Implement message filtering options (e.g., date range, keywords).
 - Support for additional Discord features (e.g., managing server messages).
-  
-## License
 
-This project is licensed under the MIT License. See the `LICENSE` file for details.
 
