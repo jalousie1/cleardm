@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>chris zikinha</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>CL ZIKA DO CHRIS ZIKA</h1>
+        
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Authentication</h5>
+                <div class="mb-4">
+                    <input type="password" class="form-control" id="token" placeholder="Enter your Discord token">
+                </div>
+                <div class="d-flex gap-2 align-items-center">
+                    <button id="connect" class="btn btn-primary flex-grow-1">Connect to Discord</button>
+                    <button id="tutorial-btn" class="btn btn-outline-secondary tutorial-btn" data-bs-toggle="modal" data-bs-target="#tutorialModal">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-question-circle" viewBox="0 0 16 16">
+                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                            <path d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286zm1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Tutorial Modal -->
+        <div class="modal fade" id="tutorialModal" tabindex="-1" aria-labelledby="tutorialModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content bg-dark text-light">
+                    <div class="modal-header border-secondary">
+                        <h5 class="modal-title" id="tutorialModalLabel">How to Get Your Discord Token</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Add your tutorial content here -->
+                        <div id="tutorial-content">
+                            <p>Para pegar o seu token, siga estes passos:</p>
+                            <ol>
+                                <li>Entre no Discord pelo navegador</li>
+                                <li>Aperte a tecla F12 do seu teclado e vá em "Console"</li>
+                                <li>Primeiro escreva no console:</li>
+                                <pre class="code-block">allow pasting</pre>
+                                <li>Depois copie e cole o seguinte código:</li>
+                                <pre class="code-block">alert((webpackChunkdiscord_app.push([[''],{},e=>{m=[];for(let c in e.c)m.push(e.c[c])}]),m).find(m=>m?.exports?.default?.getToken!==void 0).exports.default.getToken());</pre>
+                                <li>Aperte Enter e irá aparecer seu token</li>
+                                <li>Copie o token e cole no campo acima!</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="channels-section" class="card" style="display: none;">
+            <div class="card-body">
+                <h5 class="card-title">Select Channel</h5>
+                <select id="channel-select" class="form-select mb-4">
+                    <option value="">Choose a DM channel</option>
+                </select>
+                <button id="load-messages" class="btn btn-primary w-100" disabled>Load Messages</button>
+            </div>
+        </div>
+
+        <div id="messages-section" class="card" style="display: none;">
+            <div class="card-body">
+                <h5 class="card-title">Messages</h5>
+                <p id="message-count" class="progress-info">Total messages: 0</p>
+                <div class="d-flex gap-3">
+                    <button id="delete-messages" class="btn btn-danger flex-grow-1">Delete Messages</button>
+                    <button id="stop-deletion" class="btn btn-warning" style="display: none;">Stop</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Progress Log</h5>
+                <div id="log-container">
+                    <!-- Logs will appear here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Add visualization toggle -->
+        <div class="visualization-toggle">
+            <button class="toggle-btn active" data-view="log">Log</button>
+            <button class="toggle-btn" data-view="progress">Progress Bar</button>
+        </div>
+
+        <!-- Add progress bar container -->
+        <div class="progress-container">
+            <div class="progress">
+                <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+            </div>
+            <div class="text-center mt-2">
+                <span class="progress-text">0%</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentToken = null;
+        let currentMessages = [];
+        let isDeleting = false;
+
+        function updateProgress(progress) {
+            const progressBar = document.querySelector('.progress-bar');
+            const progressText = document.querySelector('.progress-text');
+            const percentage = Math.round(progress);
+            
+            progressBar.style.width = `${percentage}%`;
+            progressText.textContent = `${percentage}%`;
+        }
+
+        function log(message, progress = null) {
+            const logContainer = document.getElementById('log-container');
+            const timestamp = new Date().toISOString();
+            logContainer.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            logContainer.scrollTop = logContainer.scrollHeight;
+
+            if (progress !== null) {
+                updateProgress(progress);
+            }
+        }
+
+        document.querySelectorAll('.toggle-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Toggle active state
+                document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                // Toggle visibility
+                const view = btn.dataset.view;
+                if (view === 'log') {
+                    document.getElementById('log-container').style.display = 'block';
+                    document.querySelector('.progress-container').style.display = 'none';
+                } else {
+                    document.getElementById('log-container').style.display = 'none';
+                    document.querySelector('.progress-container').style.display = 'block';
+                }
+            });
+        });
+
+        document.getElementById('connect').addEventListener('click', async () => {
+            const token = document.getElementById('token').value;
+            if (!token) {
+                log('No token provided');
+                return;
+            }
+
+            try {
+                log('Verifying token...');
+                const verifyResponse = await fetch('http://localhost:3000/api/verify', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ token })
+                });
+
+                const verifyData = await verifyResponse.json();
+                
+                if (verifyData.valid) {
+                    currentToken = token;
+                    log('Token verified successfully');
+                    
+                    const channelsResponse = await fetch('http://localhost:3000/api/channels', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ token })
+                    });
+
+                    const { channels } = await channelsResponse.json();
+                    
+                    const select = document.getElementById('channel-select');
+                    select.innerHTML = '<option value="">Select a DM channel</option>';
+                    
+                    channels.forEach(channel => {
+                        const username = channel.recipients?.[0]?.username || 'Unknown User';
+                        select.innerHTML += `<option value="${channel.id}">${username}</option>`;
+                    });
+
+                    document.getElementById('channels-section').style.display = 'block';
+                    document.getElementById('load-messages').disabled = false;
+                } else {
+                    log('Invalid token!');
+                }
+            } catch (error) {
+                log(`Error: ${error.message}`);
+            }
+        });
+
+        document.getElementById('load-messages').addEventListener('click', async () => {
+            const channelId = document.getElementById('channel-select').value;
+            if (!channelId) {
+                log('No channel selected');
+                return;
+            }
+
+            try {
+                log('Loading messages...');
+                const response = await fetch('http://localhost:3000/api/messages', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ token: currentToken, channelId })
+                });
+
+                const { messages } = await response.json();
+                currentMessages = messages;
+                
+                document.getElementById('message-count').textContent = `Total messages: ${messages.length}`;
+                document.getElementById('messages-section').style.display = 'block';
+                log(`Found ${messages.length} messages`);
+            } catch (error) {
+                log(`Error: ${error.message}`);
+            }
+        });
+
+        document.getElementById('delete-messages').addEventListener('click', async () => {
+            if (!currentMessages.length) {
+                log('No messages to delete');
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to delete ${currentMessages.length} messages?`)) {
+                return;
+            }
+
+            const deleteBtn = document.getElementById('delete-messages');
+            const stopBtn = document.getElementById('stop-deletion');
+            deleteBtn.disabled = true;
+            stopBtn.style.display = 'inline-block';
+            isDeleting = true;
+
+            const channelId = document.getElementById('channel-select').value;
+            const batchSize = 40;
+            const delayBetweenBatches = 30000; // 30 seconds
+            let deleted = 0;
+            let failed = 0;
+
+            // Process messages in batches
+            for (let i = 0; i < currentMessages.length && isDeleting; i += batchSize) {
+                const batch = currentMessages.slice(i, i + batchSize);
+                log(`Processing batch of ${batch.length} messages...`);
+
+                for (const message of batch) {
+                    if (!isDeleting) {
+                        log('Deletion stopped by user');
+                        break;
+                    }
+
+                    try {
+                        const response = await fetch('http://localhost:3000/api/delete', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                token: currentToken,
+                                channelId,
+                                messageId: message.id
+                            })
+                        });
+
+                        const { success } = await response.json();
+                        if (success) {
+                            deleted++;
+                        } else {
+                            failed++;
+                        }
+
+                        const progress = (deleted + failed) / currentMessages.length * 100;
+                        log(`Progress: ${progress.toFixed(1)}% (${deleted} deleted, ${failed} failed)`, progress);
+                        
+                        // Small delay between deletions
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    } catch (error) {
+                        failed++;
+                        log(`Error deleting message: ${error.message}`);
+                    }
+                }
+
+                // If stopped or finished, break the loop
+                if (!isDeleting) break;
+
+                // If there are more messages to process, wait 30 seconds
+                if (i + batchSize < currentMessages.length) {
+                    log('Batch complete. Waiting 30 seconds before next batch...');
+                    await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
+                }
+            }
+
+            // Reset UI state
+            deleteBtn.disabled = false;
+            stopBtn.style.display = 'none';
+            isDeleting = false;
+
+            log(`Completed: ${deleted} messages deleted, ${failed} failed`);
+            document.getElementById('messages').innerHTML = '';
+            currentMessages = [];
+        });
+
+        // Add stop button handler
+        document.getElementById('stop-deletion').addEventListener('click', () => {
+            isDeleting = false;
+            log('Stopping deletion process...');
+            document.getElementById('stop-deletion').disabled = true;
+        });
+    </script>
+
+    <!-- Add Bootstrap JS for modal functionality -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
